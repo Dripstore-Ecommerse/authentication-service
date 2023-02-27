@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import AppError from "../util/AppError";
-import { filterData } from "../util";
+import filterData from "../util/filterData";
 import User from "../model/userModel";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { Schema } from "mongoose";
 import { JWT_EXPIRE, JWT_SECRET } from "../config/base";
+import catchAsync from "../util/catchAsync";
 
 const getJwt = (userId: Schema.Types.ObjectId, secret: string, exp: any) => {
   return jwt.sign({ _id: userId }, secret, {
@@ -17,7 +18,7 @@ const correctPassword = async function (candidatePwd: string, userPwd: string) {
   return await bcrypt.compare(candidatePwd, userPwd);
 };
 
-export async function login(
+export const login = catchAsync(async function login(
   req: Request,
   res: Response,
   next: NextFunction
@@ -40,7 +41,7 @@ export async function login(
     message: "Login successful",
     token,
   });
-}
+});
 
 export async function logout(
   req: Request,
@@ -53,13 +54,12 @@ export async function logout(
     message: "Logout successful!",
   });
 }
-
-export async function register(
+export const register = catchAsync(async function register(
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<any> {
-  filterData(req.body, ["name", "email", "password"]); //not implemented yet!
+  filterData(req.body, ["name", "email", "password"]);
   const newUser = await User.create(req.body);
   const token = getJwt(newUser._id, JWT_SECRET, JWT_EXPIRE);
   req.session = { jwt: token };
@@ -76,9 +76,11 @@ export async function register(
       token,
     },
   });
-}
-
-export async function me(req: Request, res: Response): Promise<any> {
+});
+export const me = catchAsync(async function me(
+  req: Request,
+  res: Response
+): Promise<any> {
   res.status(200).json({
     status: true,
     user: {
@@ -86,9 +88,9 @@ export async function me(req: Request, res: Response): Promise<any> {
       email: req.user.email,
     },
   });
-}
+});
 
-export async function protect(
+export const protect = catchAsync(async function protect(
   req: Request,
   res: Response,
   next: NextFunction
@@ -104,9 +106,9 @@ export async function protect(
   const user = await User.findById(_id);
   req.user = user;
   next();
-}
+});
 
-export function allow(
+export const allow = function allow(
   roles: Array<string>
 ): (req: Request, res: Response, next: NextFunction) => void {
   return function (req: Request, res: Response, next: NextFunction) {
@@ -115,4 +117,4 @@ export function allow(
     }
     next();
   };
-}
+};

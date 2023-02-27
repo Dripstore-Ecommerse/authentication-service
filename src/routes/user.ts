@@ -15,7 +15,7 @@ router.route("/user").get(getAllUsers).post(createUser);
 router
   .route("/user/:id")
   .get(getUser)
-  .patch(updateUser)
+  .patch(protect, allow(["admin"]), updateUser)
   .delete(protect, allow(["admin"]), deleteUser);
 
 export default router;

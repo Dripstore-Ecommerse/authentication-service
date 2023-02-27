@@ -10,5 +10,4 @@ export const JWT_SECRET =
   process.env.JWT_SECRET || "98awes$34ds5bg$#h45gb43%w98hg3w@84weg";
 export const JWT_EXPIRE = process.env.JWT_EXPIRE || "30d";
 
-export const DB_URI = process.env.DB_URI || "mongodb://localhost:27017/example";
-//mongodb://auth-mongo-srv:27017/
+export const DB_URI = process.env.DB_URI || "mongodb://auth-mongo-srv:27017/";
