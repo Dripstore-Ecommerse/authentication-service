@@ -6,7 +6,8 @@ import {
   deleteUser,
   createUser,
 } from "../controller/user";
-import { allow, protect } from "../controller/auth";
+
+import { allow, protect } from "@dripstore/common/build";
 
 const router = express.Router();
 

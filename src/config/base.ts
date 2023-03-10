@@ -1,4 +1,4 @@
-export const ENVIRONMENT = process.env.APP_ENV || "DEV";
+export const ENVIRONMENT = process.env.APP_ENV || "development";
 export const IS_PRODUCTION = ENVIRONMENT === "";
 export const IS_TEST = ENVIRONMENT === "";
 export const PORT = Number(process.env.APP_PORT) || 3001;

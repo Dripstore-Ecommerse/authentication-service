@@ -8,6 +8,7 @@ import cookieSession from "cookie-session";
 import router from "./routes";
 import { corsOptions } from "./config";
 import { ENVIRONMENT } from "./config/base";
+import { errorConverter, errorHandler } from "@dripstore/common/build";
 
 const app = express();
 
@@ -39,5 +40,11 @@ app.use("/", router);
 app.use((_req, res, _next) => {
   res.status(404).send("Not Found!");
 });
+
+// convert error to ApiError, if needed
+app.use(errorConverter);
+
+// handle error
+app.use(errorHandler);
 
 export default app;

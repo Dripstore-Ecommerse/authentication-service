@@ -2,14 +2,28 @@ import { Request, Response, NextFunction } from "express";
 import AppError from "../util/AppError";
 import filterData from "../util/filterData";
 import User from "../model/userModel";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { Schema } from "mongoose";
 import { JWT_EXPIRE, JWT_SECRET } from "../config/base";
 import catchAsync from "../util/catchAsync";
+import { IUser } from "../types/global";
+import RabbitMQProducer from "@dripstore/common/build/util/RabbitMQProducer";
 
-const getJwt = (userId: Schema.Types.ObjectId, secret: string, exp: any) => {
-  return jwt.sign({ _id: userId }, secret, {
+const sendMessageToQueue = (queue: string, obj: object) => {
+  const message = JSON.stringify(obj);
+
+  const producer = new RabbitMQProducer(
+    "amqp://default_user_uJAu0ttkJDvBBolxyPe:eDbrE5bOGGXMFsQh3LpmtLIDqcQzvB52@10.105.181.43",
+    queue
+  );
+
+  producer.send(message);
+  producer.close();
+};
+
+const getJwt = (user: IUser, secret: string, exp: any) => {
+  console.log(secret);
+  return jwt.sign({ _id: user._id, role: user.role }, secret, {
     expiresIn: exp,
   });
 };
@@ -33,7 +47,7 @@ export const login = catchAsync(async function login(
   if (!user || !(await correctPassword(req.body.password, user.password)))
     return next(new AppError(401, "Incorrect email or password"));
 
-  const token = getJwt(user._id, JWT_SECRET, JWT_EXPIRE);
+  const token = getJwt(user, JWT_SECRET, JWT_EXPIRE);
   req.session = { jwt: token };
 
   res.status(200).json({
@@ -54,6 +68,7 @@ export async function logout(
     message: "Logout successful!",
   });
 }
+
 export const register = catchAsync(async function register(
   req: Request,
   res: Response,
@@ -61,8 +76,11 @@ export const register = catchAsync(async function register(
 ): Promise<any> {
   filterData(req.body, ["name", "email", "password"]);
   const newUser = await User.create(req.body);
-  const token = getJwt(newUser._id, JWT_SECRET, JWT_EXPIRE);
+  const token = getJwt(newUser, JWT_SECRET, JWT_EXPIRE);
   req.session = { jwt: token };
+
+  sendMessageToQueue("user-to-cart", newUser);
+  sendMessageToQueue("user-to-coupon", newUser);
 
   res.status(201).json({
     status: true,
@@ -72,11 +90,13 @@ export const register = catchAsync(async function register(
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
+        role: newUser.role,
       },
       token,
     },
   });
 });
+
 export const me = catchAsync(async function me(
   req: Request,
   res: Response
@@ -89,32 +109,3 @@ export const me = catchAsync(async function me(
     },
   });
 });
-
-export const protect = catchAsync(async function protect(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<any> {
-  let token = "";
-  if (req.headers.authorization?.startsWith("Bearer")) {
-    token = req.headers.authorization?.split(" ")[1];
-  }
-  if (!token) return next(new AppError(401, "Please login to get access."));
-
-  const { _id } = jwt.verify(token, JWT_SECRET) as JwtPayload;
-  console.log(_id);
-  const user = await User.findById(_id);
-  req.user = user;
-  next();
-});
-
-export const allow = function allow(
-  roles: Array<string>
-): (req: Request, res: Response, next: NextFunction) => void {
-  return function (req: Request, res: Response, next: NextFunction) {
-    if (!roles.includes(req.user.role)) {
-      return next(new AppError(403, "Unauthorized route access!"));
-    }
-    next();
-  };
-};

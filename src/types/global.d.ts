@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 interface IUser {
-  _id: any; //for some time, will change
+  _id: mongoose.Schema.Types.ObjectId;
   name: string;
   email: string;
   password: string;

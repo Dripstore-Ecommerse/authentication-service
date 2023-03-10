@@ -1,12 +1,6 @@
 import express from "express";
-import {
-  login,
-  register,
-  me,
-  protect,
-  allow,
-  logout,
-} from "../controller/auth";
+import { login, register, me, logout } from "../controller/auth";
+import { protect } from "@dripstore/common/build";
 
 const router = express.Router();
 
